@@ -8,7 +8,8 @@ from utils import build_model, determine_device
 
 def load_checkpoint(filepath):
     checkpoint = torch.load(filepath)
-    model = build_model(checkpoint['arch'], checkpoint['hidden_units'], checkpoint['dropout'])
+    output = len(checkpoint['class_to_idx'])
+    model = build_model(checkpoint['arch'], checkpoint['hidden_units'], output, checkpoint['dropout'])
     model.load_state_dict(checkpoint['state_dict'])
     model.class_to_idx = checkpoint['class_to_idx']
     return model

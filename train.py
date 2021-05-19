@@ -127,16 +127,19 @@ def main():
     args = parse_args()
     device = determine_device(args.gpu)
 
+    # load training and validation data
+    train_loader, train_data = get_train_loader(args.data_dir)
+    validation_loader = get_validation_loader(args.data_dir)
+
     # build model and define criterion and optimizer
-    model = build_model(args.arch, args.hidden_units, args.dropout)
+    output = len(train_data.class_to_idx)
+    model = build_model(args.arch, args.hidden_units, output, args.dropout)
     criterion = nn.NLLLoss()
     # should lr match the model learning rate?
     optimizer = optim.Adam(model.classifier.parameters(), lr=args.learning_rate)
     model.to(device)
 
     # train
-    train_loader, train_data = get_train_loader(args.data_dir)
-    validation_loader = get_validation_loader(args.data_dir)
     train(model, device, criterion, optimizer, train_loader, validation_loader, args.epochs)
 
     # test

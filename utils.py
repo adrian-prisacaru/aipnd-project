@@ -9,7 +9,7 @@ MODELS = {
 }
 
 
-def build_model(arch, hidden_units, dropout=0.2):
+def build_model(arch, hidden_units, output, dropout=0.2):
     model = MODELS[arch](pretrained=True)
     # freeze model parameters
     for param in model.parameters():
@@ -22,7 +22,7 @@ def build_model(arch, hidden_units, dropout=0.2):
         nn.Dropout(dropout)
     ]
     last_layer = [
-        nn.Linear(hidden_units[-1], 102),
+        nn.Linear(hidden_units[-1], output),
         nn.LogSoftmax(dim=1)
     ]
     hidden_layers = []
