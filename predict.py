@@ -71,14 +71,14 @@ def predict(image_path, model, device, topk=5):
         processed = process_image(image)
         model.eval()
         img = processed.unsqueeze(0)
-        img.to(device)
         # Calculate the class probabilities (softmax) for img
         with torch.no_grad():
-            output = model.forward(img.float())
+            output = model.forward(img.float().to(device))
             ps = torch.exp(output)
             top_p, top_class = ps.topk(topk, dim=1)
-            top_p = top_p.data.numpy().squeeze()
-            top_class = top_class.numpy()[0]
+            top_p = top_p.data.squeeze()
+            # move to cpu before converting to numpy
+            top_class = top_class.cpu().numpy()[0]
             return top_p, top_class
 
 
