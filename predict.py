@@ -14,11 +14,24 @@ def load_checkpoint(filepath):
     return model
 
 
-def process_image(image):
-    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
-        returns an Numpy array
+def resize_image(image):
+    width, height = image.size
+    aspect_ratio = width / height
+    if width < height:
+        new_width = 256
+        new_height = int(new_width / aspect_ratio)
+    elif height < width:
+        new_height = 256
+        new_width = int(width * aspect_ratio)
+    else: # when both sides are equal
+        new_width = 256
+        new_height = 256
+    return image.resize((new_width, new_height))
+
+
+def crop_image(image):
+    ''' Crop the center of the image
     '''
-    image.thumbnail((256, 256))
     width, height = image.size
     new_width, new_height = (224, 224)
     left = (width - new_width)/2
@@ -26,8 +39,17 @@ def process_image(image):
     right = (width + new_width)/2
     bottom = (height + new_height)/2
 
-    # Crop the center of the image
-    image = image.crop((left, top, right, bottom))
+    return image.crop((left, top, right, bottom))
+
+
+def process_image(image):
+    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+        returns an Numpy array
+    '''
+    # TODO: Process a PIL image for use in a PyTorch model
+    image = resize_image(image)
+    image = crop_image(image)
+
     np_image = np.array(image) / 255
 
     # normalize the image
