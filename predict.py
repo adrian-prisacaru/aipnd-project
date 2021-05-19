@@ -63,12 +63,11 @@ def process_image(image):
     return torch.from_numpy(np_image)
 
 
-def predict(image_path, checkpoint, device, topk=5):
+def predict(image_path, model, device, topk=5):
     ''' Predict the class (or classes) of an image using a trained deep learning model.
     '''
     with Image.open(image_path) as image:
         processed = process_image(image)
-        model = load_checkpoint(checkpoint)
         model.eval()
         img = processed.unsqueeze(0)
         img.to(device)
@@ -84,11 +83,12 @@ def predict(image_path, checkpoint, device, topk=5):
 
 def print_result(top_class, top_p):
     result = list(zip(top_class, top_p))
-    result.sort(key = lambda x: x[1], reverse=True)
+    result.sort(key=lambda x: x[1], reverse=True)
     print("\nTop classes")
     print("-----------")
     for top_class, top_p in result:
         print("{}: {}".format(top_class, top_p))
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Predict flower name from an image")
@@ -111,12 +111,19 @@ def main():
         cat_to_name = json.load(f)
 
     device = determine_device(args.gpu)
+    model = load_checkpoint(args.checkpoint)
+    model.to(device)
 
     # predict
-    top_p, top_class = predict(args.input, args.checkpoint, device, args.top_k)
-    top_class = list(map(lambda cl: cat_to_name[str(cl)], top_class))
+    top_p, top_class = predict(args.input, model, device, args.top_k)
 
-    print_result(top_class, top_p)
+    # top_class is the index, not the actual class
+    # convert to classes and use cat_to_name to get the labels
+    idx_to_class = {value: key for key, value in model.class_to_idx.items()}
+    top_categories = [idx_to_class[idx] for idx in top_class]
+    labels = [cat_to_name[cat] for cat in top_categories]
+
+    print_result(labels, top_p)
 
 
 if __name__ == "__main__":
