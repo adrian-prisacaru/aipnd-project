@@ -104,3 +104,5 @@ ENV/
 
 # pytorch checkpoint
 *.pth
+
+flower_data/

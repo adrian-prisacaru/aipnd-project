@@ -3,11 +3,10 @@ import torch
 from torch import nn
 from torch import optim
 from torchvision import datasets, transforms, models
-from PIL import Image
-import numpy as np
-import json
+from utils import build_model, determine_device
 
 # transforms used for training
+
 train_transforms = transforms.Compose([transforms.RandomRotation(30),
                                        transforms.RandomResizedCrop(224),
                                        transforms.RandomHorizontalFlip(),
@@ -39,26 +38,6 @@ def get_test_loader(data_dir):
     test_dir = data_dir + '/test'
     test_data = datasets.ImageFolder(test_dir, transform=data_transforms)
     return torch.utils.data.DataLoader(test_data, batch_size=64)
-
-
-def build_model():
-    # TODO: get from args
-    model = models.vgg16(pretrained=True)
-    # freeze model parameters
-    for param in model.parameters():
-        param.requires_grad = False
-    # change image classifier
-    model.classifier = nn.Sequential(
-        nn.Linear(25088, 4096),
-        nn.ReLU(),
-        nn.Dropout(0.2),
-        nn.Linear(4096, 1000),
-        nn.ReLU(),
-        nn.Dropout(0.2),
-        nn.Linear(1000, 102),
-        nn.LogSoftmax(dim=1)
-    )
-    return model
 
 
 def train(model, device, criterion, optimizer, train_loader, validation_loader, epochs):
@@ -134,38 +113,26 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train a new network on a dataset and save the model as a checkpoint")
     parser.add_argument('data_dir', help='Data folder')
     parser.add_argument('--save_dir', default='checkpoints', help='Folder to save checkpoints')
-    parser.add_argument('--arch', default='vgg16', help='Model Architecture', choices=['vgg16'])
+    parser.add_argument('--arch', default='vgg16', help='Model Architecture', choices=['vgg13', 'vgg16', 'vgg19'])
     parser.add_argument('--learning_rate', default=0.01, type=float, help='Learning rate')
-    parser.add_argument('--hidden_units', default=512, type=int, help='Hidden units')
+    parser.add_argument('--hidden_units', default=[4096, 1000], nargs="+", type=int, help='Hidden units')
     parser.add_argument('--epochs', default=3, type=int, help='Epochs')
+    parser.add_argument('--dropout', default=0.2, type=float, help='Dropout')
     parser.add_argument('--gpu', action='store_true', help='Enable GPU training')
-    parser.add_argument('--cat_to_name', default='cat_to_name.json', help='Mapping from category label to category name')
     return parser.parse_args()
 
 
 def main():
-    print('----- training -------')
+    print('training')
     args = parse_args()
-    print(args.gpu)
-
-    # mapping from category label to category name
-    with open(args.cat_to_name, 'r') as f:
-        cat_to_name = json.load(f)
-
-    # get device
-    if args.gpu:
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-        else:
-            raise Exception("GPU not available on this machine")
-    else:
-        device = "cpu"
+    print(args.hidden_units)
+    device = determine_device(args.gpu)
 
     # build model and define criterion and optimizer
-    model = build_model()
+    model = build_model(args.arch, args.hidden_units, args.dropout)
     criterion = nn.NLLLoss()
-    # TODO: should lr match the model learning rate?
-    optimizer = optim.Adam(model.classifier.parameters(), lr=0.003)
+    # should lr match the model learning rate?
+    optimizer = optim.Adam(model.classifier.parameters(), lr=args.learning_rate)
     model.to(device)
 
     # train
@@ -178,12 +145,15 @@ def main():
     test_model(model, device, criterion, test_loader)
 
     # save checkpoint
-    # TODO: add model hyperparameters
     checkpoint = {
-        'epochs': args.epochs,
         'state_dict': model.state_dict(),
         'class_to_idx': train_data.class_to_idx,
         'optimizer': optimizer.state_dict(),
+        'epochs': args.epochs,
+        'arch': args.arch,
+        'dropout': args.dropout,
+        'learning_rate': args.learing_rate
+
     }
     torch.save(checkpoint, "{}/checkpoint.pth".format(args.save_dir))
 
