@@ -4,6 +4,7 @@ from torch import nn
 from torch import optim
 from torchvision import datasets, transforms, models
 from utils import build_model, determine_device
+from pathlib import Path
 
 # transforms used for training
 
@@ -114,7 +115,7 @@ def parse_args():
     parser.add_argument('data_dir', help='Data folder')
     parser.add_argument('--save_dir', default='checkpoints', help='Folder to save checkpoints')
     parser.add_argument('--arch', default='vgg16', help='Model Architecture', choices=['vgg13', 'vgg16', 'vgg19'])
-    parser.add_argument('--learning_rate', default=0.01, type=float, help='Learning rate')
+    parser.add_argument('--learning_rate', default=0.003, type=float, help='Learning rate')
     parser.add_argument('--hidden_units', default=[4096, 1000], nargs="+", type=int, help='Hidden units')
     parser.add_argument('--epochs', default=3, type=int, help='Epochs')
     parser.add_argument('--dropout', default=0.2, type=float, help='Dropout')
@@ -123,9 +124,7 @@ def parse_args():
 
 
 def main():
-    print('training')
     args = parse_args()
-    print(args.hidden_units)
     device = determine_device(args.gpu)
 
     # build model and define criterion and optimizer
@@ -152,10 +151,13 @@ def main():
         'epochs': args.epochs,
         'arch': args.arch,
         'dropout': args.dropout,
-        'learning_rate': args.learing_rate
-
+        'learning_rate': args.learning_rate,
+        'hidden_units': args.hidden_units
     }
-    torch.save(checkpoint, "{}/checkpoint.pth".format(args.save_dir))
+    # create the file if it doesn't exist
+    checkpoint_file = Path("{}/checkpoint.pth".format(args.save_dir))
+    checkpoint_file.touch(exist_ok=True)
+    torch.save(checkpoint, checkpoint_file)
 
     print("\n Checkpoint saved successfully")
 

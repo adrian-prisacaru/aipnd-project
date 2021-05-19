@@ -8,7 +8,7 @@ from utils import build_model, determine_device
 
 def load_checkpoint(filepath):
     checkpoint = torch.load(filepath)
-    model = build_model(checkpoint.arch, checkpoint.hidden_units, checkpoint.dropout)
+    model = build_model(checkpoint['arch'], checkpoint['hidden_units'], checkpoint['dropout'])
     model.load_state_dict(checkpoint['state_dict'])
     model.class_to_idx = checkpoint['class_to_idx']
     return model
@@ -60,6 +60,14 @@ def predict(image_path, checkpoint, device, topk=5):
             return top_p, top_class
 
 
+def print_result(top_class, top_p):
+    result = list(zip(top_class, top_p))
+    result.sort(key = lambda x: x[1], reverse=True)
+    print("\nTop classes")
+    print("-----------")
+    for top_class, top_p in result:
+        print("{}: {}".format(top_class, top_p))
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Predict flower name from an image")
     parser.add_argument('input', help='Path to image')
@@ -75,19 +83,18 @@ def parse_args():
 
 
 def main():
-    print('predict started')
     args = parse_args()
     # mapping from category label to category name
-    with open(args.cat_to_name, 'r') as f:
+    with open(args.category_names, 'r') as f:
         cat_to_name = json.load(f)
 
     device = determine_device(args.gpu)
 
     # predict
-    top_p, top_class = predict(input, args.checkpoint, device, args.topk)
+    top_p, top_class = predict(args.input, args.checkpoint, device, args.top_k)
     top_class = list(map(lambda cl: cat_to_name[str(cl)], top_class))
-    print(top_class)
-    print(top_p)
+
+    print_result(top_class, top_p)
 
 
 if __name__ == "__main__":

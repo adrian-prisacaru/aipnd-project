@@ -43,8 +43,10 @@ def build_model(arch, hidden_units, dropout=0.2):
 def determine_device(gpu):
     if gpu:
         if torch.cuda.is_available():
+            print('Using GPU...')
             return torch.device("cuda")
         else:
             raise Exception("GPU not available on this machine")
     else:
+        print('Using CPU...')
         return torch.device("cpu")
